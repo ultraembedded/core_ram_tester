@@ -34,9 +34,13 @@
     #define RAM_TEST_CFG_READ_SHIFT              8
     #define RAM_TEST_CFG_READ_MASK               0x1
 
-    #define RAM_TEST_CFG_RND_DELAY               3
-    #define RAM_TEST_CFG_RND_DELAY_SHIFT         3
+    #define RAM_TEST_CFG_RND_DELAY               7
+    #define RAM_TEST_CFG_RND_DELAY_SHIFT         7
     #define RAM_TEST_CFG_RND_DELAY_MASK          0x1
+
+    #define RAM_TEST_CFG_USER                    3
+    #define RAM_TEST_CFG_USER_SHIFT              3
+    #define RAM_TEST_CFG_USER_MASK               0x1
 
     #define RAM_TEST_CFG_INCR                    2
     #define RAM_TEST_CFG_INCR_SHIFT              2
@@ -67,15 +71,19 @@
     #define RAM_TEST_CURRENT_ADDR_SHIFT          0
     #define RAM_TEST_CURRENT_ADDR_MASK           0xffffffff
 
-#define RAM_TEST_TIME     0x14
+#define RAM_TEST_WRITE    0x14
+    #define RAM_TEST_WRITE_PATTERN_SHIFT         0
+    #define RAM_TEST_WRITE_PATTERN_MASK          0xffffffff
+
+#define RAM_TEST_TIME     0x18
     #define RAM_TEST_TIME_CYCLES_SHIFT           0
     #define RAM_TEST_TIME_CYCLES_MASK            0xffffffff
 
-#define RAM_TEST_ERRORS   0x18
+#define RAM_TEST_ERRORS   0x1c
     #define RAM_TEST_ERRORS_COUNT_SHIFT          0
     #define RAM_TEST_ERRORS_COUNT_MASK           0xffffffff
 
-#define RAM_TEST_LAST     0x1c
+#define RAM_TEST_LAST     0x20
     #define RAM_TEST_LAST_RD_DATA_SHIFT          0
     #define RAM_TEST_LAST_RD_DATA_MASK           0xffffffff
 

@@ -38,12 +38,19 @@
     `define RAM_TEST_CFG_READ_W          1
     `define RAM_TEST_CFG_READ_R          8:8
 
-    `define RAM_TEST_CFG_RND_DELAY      3
+    `define RAM_TEST_CFG_RND_DELAY      7
     `define RAM_TEST_CFG_RND_DELAY_DEFAULT    0
-    `define RAM_TEST_CFG_RND_DELAY_B          3
-    `define RAM_TEST_CFG_RND_DELAY_T          3
+    `define RAM_TEST_CFG_RND_DELAY_B          7
+    `define RAM_TEST_CFG_RND_DELAY_T          7
     `define RAM_TEST_CFG_RND_DELAY_W          1
-    `define RAM_TEST_CFG_RND_DELAY_R          3:3
+    `define RAM_TEST_CFG_RND_DELAY_R          7:7
+
+    `define RAM_TEST_CFG_USER      3
+    `define RAM_TEST_CFG_USER_DEFAULT    0
+    `define RAM_TEST_CFG_USER_B          3
+    `define RAM_TEST_CFG_USER_T          3
+    `define RAM_TEST_CFG_USER_W          1
+    `define RAM_TEST_CFG_USER_R          3:3
 
     `define RAM_TEST_CFG_INCR      2
     `define RAM_TEST_CFG_INCR_DEFAULT    0
@@ -99,7 +106,15 @@
     `define RAM_TEST_CURRENT_ADDR_W          32
     `define RAM_TEST_CURRENT_ADDR_R          31:0
 
-`define RAM_TEST_TIME    8'h14
+`define RAM_TEST_WRITE    8'h14
+
+    `define RAM_TEST_WRITE_PATTERN_DEFAULT    0
+    `define RAM_TEST_WRITE_PATTERN_B          0
+    `define RAM_TEST_WRITE_PATTERN_T          31
+    `define RAM_TEST_WRITE_PATTERN_W          32
+    `define RAM_TEST_WRITE_PATTERN_R          31:0
+
+`define RAM_TEST_TIME    8'h18
 
     `define RAM_TEST_TIME_CYCLES_DEFAULT    0
     `define RAM_TEST_TIME_CYCLES_B          0
@@ -107,7 +122,7 @@
     `define RAM_TEST_TIME_CYCLES_W          32
     `define RAM_TEST_TIME_CYCLES_R          31:0
 
-`define RAM_TEST_ERRORS    8'h18
+`define RAM_TEST_ERRORS    8'h1c
 
     `define RAM_TEST_ERRORS_COUNT_DEFAULT    0
     `define RAM_TEST_ERRORS_COUNT_B          0
@@ -115,7 +130,7 @@
     `define RAM_TEST_ERRORS_COUNT_W          32
     `define RAM_TEST_ERRORS_COUNT_R          31:0
 
-`define RAM_TEST_LAST    8'h1c
+`define RAM_TEST_LAST    8'h20
 
     `define RAM_TEST_LAST_RD_DATA_DEFAULT    0
     `define RAM_TEST_LAST_RD_DATA_B          0

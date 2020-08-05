@@ -8,85 +8,77 @@ Accesses are performed as pipelined AXI-4 burst operations.
 
 #### Example Usage
 ```
+##################################################################
+# run_ram_test: Write pattern to RAM array
+##################################################################
+def run_ram_test(bus_if, base, size, pattern, clock_ns, burst_len=32):
+
+    # Configure
+    bus_if.write32(RAM_TEST_BASE,  base)
+    bus_if.write32(RAM_TEST_END,   base + size)
+
+    if pattern != None:
+        bus_if.write32(RAM_TEST_WRITE, pattern)
+
+    # Burst length
+    cfg = ((burst_len/4)-1) << RAM_TEST_CFG_BURST_LEN_SHIFT
+
+    # Type
+    if pattern != None:
+        cfg |= (1 << RAM_TEST_CFG_USER_SHIFT)
+    else:
+        cfg |= (1 << RAM_TEST_CFG_INCR_SHIFT)
+
+    if pattern != None:
+        print "# Write RAM to 0x%08x" % pattern
+    else:
+        print "# Write RAM to INCR"
+
+    bus_if.write32(RAM_TEST_CFG, cfg)
+    while True:
+        status = bus_if.read32(RAM_TEST_STS)
+        if (status & (1 << RAM_TEST_STS_BUSY_SHIFT)) == 0:
+            break
+
+    cycles   = bus_if.read32(RAM_TEST_TIME)
+    time_ns  = clock_ns * cycles
+    bw       = (1000000000.0 / time_ns) * size
+    print "|- %d bytes written in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)
+
+    print "# Read RAM and compare"
+    bus_if.write32(RAM_TEST_CFG, cfg | (1 << RAM_TEST_CFG_READ_SHIFT))
+    while True:
+        status = bus_if.read32(RAM_TEST_STS)
+        if (status & (1 << RAM_TEST_STS_BUSY_SHIFT)) == 0:
+            break
+
+    errors   = bus_if.read32(RAM_TEST_ERRORS)
+    cycles   = bus_if.read32(RAM_TEST_TIME)
+    time_ns  = clock_ns * cycles
+    bw       = (1000000000.0 / time_ns) * size
+    print "|- %d bytes read in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)
+    print "|- Errors: %d" % errors
+    if errors > 0:
+        print "ERROR: RAM read errors encountered"
+        sys.exit(1)
+
+##################################################################
+# Test sequence
+##################################################################
     clock_ns  = 20
     burst_len = 64
     print "# User clock: %fns (%fMHz)" % (clock_ns, 1000/clock_ns)
     print "# Burst Length: %d bytes" % (burst_len)
 
-    # Configure Buffer
     base = 0x80000000
     size = (1 * 1024 * 1024)
-    ram_tester.write32(RAM_TEST_BASE, 0x80000000)
-    ram_tester.write32(RAM_TEST_END, base + size)
 
-    burst_cfg = (burst_len-1) << RAM_TEST_CFG_BURST_LEN_SHIFT
-
-    ###########################################################################
-    # Write RAM to ZEROS
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_ZERO_SHIFT))
-    while True:
-        status = ram_tester.read32(RAM_TEST_STS)
-        if (status & (1 << RAM_TEST_STS_BUSY_SHIFT)) == 0:
-            break
-
-    cycles   = ram_tester.read32(RAM_TEST_TIME)
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes written in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)
-
-    # Checking
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_ZERO_SHIFT) | (1 << RAM_TEST_CFG_READ_SHIFT))
-    errors   = ram_tester.read32(RAM_TEST_ERRORS)
-    cycles   = ram_tester.read32(RAM_TEST_TIME)
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes read in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)    
-    print "|- Errors: %d" % errors
-
-    ###########################################################################
-    # Write RAM to ONES
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_ONES_SHIFT))
-    while True:
-        status = ram_tester.read32(RAM_TEST_STS)
-        if (status & (1 << RAM_TEST_STS_BUSY_SHIFT)) == 0:
-            break
-
-    cycles   = ram_tester.read32(RAM_TEST_TIME)
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes written in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)
-
-    # Checking
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_ONES_SHIFT) | (1 << RAM_TEST_CFG_READ_SHIFT))
-    errors   = ram_tester.read32(RAM_TEST_ERRORS)
-    cycles   = ram_tester.read32(RAM_TEST_TIME)
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes read in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)    
-    print "|- Errors: %d" % errors
-
-    ###########################################################################
-    # Write RAM to INCR
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_INCR_SHIFT))
-    while True:
-        status = ram_tester.read32(RAM_TEST_STS)
-        if (status & (1 << RAM_TEST_STS_BUSY_SHIFT)) == 0:
-            break
-
-    cycles   = ram_tester.read32(RAM_TEST_TIME)    
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes written in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)
-
-    # Checking
-    ram_tester.write32(RAM_TEST_CFG, burst_cfg | (1 << RAM_TEST_CFG_INCR_SHIFT) | (1 << RAM_TEST_CFG_READ_SHIFT))
-    errors   = ram_tester.read32(RAM_TEST_ERRORS)
-    cycles   = ram_tester.read32(RAM_TEST_TIME)
-    time_ns  = clock_ns * cycles
-    bw       = (1000000000 / time_ns) * size
-    print "|- %d bytes read in %d cycles (%dMB/s)" % (size, cycles, bw / 1000000)    
-    print "|- Errors: %d" % errors
+    run_ram_test(bus_if, base, size, 0x00000000, clock_ns, burst_len)
+    run_ram_test(bus_if, base, size, 0xFFFFFFFF, clock_ns, burst_len)
+    run_ram_test(bus_if, base, size, 0x5555aaaa, clock_ns, burst_len)
+    run_ram_test(bus_if, base, size, None,       clock_ns, burst_len)
 ```
+
 
 ##### Register Map
 
@@ -97,9 +89,10 @@ Accesses are performed as pipelined AXI-4 burst operations.
 | 0x08 | RAM_TEST_END | [RW] Buffer End Address |
 | 0x0c | RAM_TEST_STS | [R] Status Register |
 | 0x10 | RAM_TEST_CURRENT | [R] Buffer Current address |
-| 0x14 | RAM_TEST_TIME | [R] Operation completion cycles |
-| 0x18 | RAM_TEST_ERRORS | [R] Operation errors |
-| 0x1c | RAM_TEST_LAST | [R] Last read data |
+| 0x14 | RAM_TEST_WRITE | [RW] User specified write pattern |
+| 0x18 | RAM_TEST_TIME | [R] Operation completion cycles |
+| 0x1c | RAM_TEST_ERRORS | [R] Operation errors |
+| 0x20 | RAM_TEST_LAST | [R] Last read data |
 
 ##### Register: RAM_TEST_CFG
 
@@ -107,7 +100,8 @@ Accesses are performed as pipelined AXI-4 burst operations.
 | ---- | ---- | -------------- |
 | 31:28 | BURST_LEN | Burst length - 1 (0 = singles, 1 = 8 bytes, 3 = 16 bytes) |
 | 8 | READ | Perform read operation (with error checking) |
-| 3 | RND_DELAY | Enable short psuedo random delay between accesses |
+| 7 | RND_DELAY | Enable short psuedo random delay between accesses |
+| 3 | USER | Execute - write/compare user data word to RAM (RAM_TEST_WRITE_PATTERN) |
 | 2 | INCR | Execute - incrementing pattern 0x33221100, 0x77665544, ... |
 | 1 | ONES | Execute - all ones pattern |
 | 0 | ZERO | Execute - all zeros pattern |
@@ -136,6 +130,12 @@ Accesses are performed as pipelined AXI-4 burst operations.
 | ---- | ---- | -------------- |
 | 31:0 | ADDR | Current read / write pointer |
 
+##### Register: RAM_TEST_WRITE
+
+| Bits | Name | Description    |
+| ---- | ---- | -------------- |
+| 31:0 | PATTERN | Data word to be written on RAM_TEST_CFG.USER |
+
 ##### Register: RAM_TEST_TIME
 
 | Bits | Name | Description    |
@@ -153,3 +153,4 @@ Accesses are performed as pipelined AXI-4 burst operations.
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
 | 31:0 | RD_DATA | For READ tests, last word read from RAM |
+

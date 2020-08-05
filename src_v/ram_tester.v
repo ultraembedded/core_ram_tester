@@ -205,6 +205,20 @@ else if (write_en_w && (wr_addr_w[7:0] == `RAM_TEST_CFG))
 wire        ram_test_cfg_rnd_delay_out_w = ram_test_cfg_rnd_delay_q;
 
 
+// ram_test_cfg_user [auto_clr]
+reg        ram_test_cfg_user_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    ram_test_cfg_user_q <= 1'd`RAM_TEST_CFG_USER_DEFAULT;
+else if (write_en_w && (wr_addr_w[7:0] == `RAM_TEST_CFG))
+    ram_test_cfg_user_q <= cfg_wdata_i[`RAM_TEST_CFG_USER_R];
+else
+    ram_test_cfg_user_q <= 1'd`RAM_TEST_CFG_USER_DEFAULT;
+
+wire        ram_test_cfg_user_out_w = ram_test_cfg_user_q;
+
+
 // ram_test_cfg_incr [auto_clr]
 reg        ram_test_cfg_incr_q;
 
@@ -326,6 +340,31 @@ else
 
 
 //-----------------------------------------------------------------
+// Register ram_test_write
+//-----------------------------------------------------------------
+reg ram_test_write_wr_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    ram_test_write_wr_q <= 1'b0;
+else if (write_en_w && (wr_addr_w[7:0] == `RAM_TEST_WRITE))
+    ram_test_write_wr_q <= 1'b1;
+else
+    ram_test_write_wr_q <= 1'b0;
+
+// ram_test_write_pattern [internal]
+reg [31:0]  ram_test_write_pattern_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    ram_test_write_pattern_q <= 32'd`RAM_TEST_WRITE_PATTERN_DEFAULT;
+else if (write_en_w && (wr_addr_w[7:0] == `RAM_TEST_WRITE))
+    ram_test_write_pattern_q <= cfg_wdata_i[`RAM_TEST_WRITE_PATTERN_R];
+
+wire [31:0]  ram_test_write_pattern_out_w = ram_test_write_pattern_q;
+
+
+//-----------------------------------------------------------------
 // Register ram_test_time
 //-----------------------------------------------------------------
 reg ram_test_time_wr_q;
@@ -407,6 +446,10 @@ begin
     begin
         data_r[`RAM_TEST_CURRENT_ADDR_R] = ram_test_current_addr_in_w;
     end
+    `RAM_TEST_WRITE:
+    begin
+        data_r[`RAM_TEST_WRITE_PATTERN_R] = ram_test_write_pattern_q;
+    end
     `RAM_TEST_TIME:
     begin
         data_r[`RAM_TEST_TIME_CYCLES_R] = ram_test_time_cycles_in_w;
@@ -477,9 +520,11 @@ assign cfg_bresp_o  = 2'b0;
 //-----------------------------------------------------------------
 wire [31:0] buffer_base_w     = {ram_test_base_addr_out_w[31:2], 2'b0};
 wire [31:0] buffer_end_w      = {ram_test_end_addr_out_w[31:2],  2'b0};
+wire [31:0] user_data_w       = ram_test_write_pattern_out_w;
 wire        cfg_zero_w        = ram_test_cfg_zero_out_w;
 wire        cfg_ones_w        = ram_test_cfg_ones_out_w;
 wire        cfg_incr_w        = ram_test_cfg_incr_out_w;
+wire        cfg_user_w        = ram_test_cfg_user_out_w;
 wire        cfg_dly_w         = ram_test_cfg_rnd_delay_out_w;
 wire        cfg_read_w        = ram_test_cfg_read_out_w;
 
@@ -501,17 +546,18 @@ reg [7:0]   burst_cnt_q;
 //-----------------------------------------------------------------
 // State machine
 //-----------------------------------------------------------------
-`define STATE_W  4
+localparam STATE_W          = 3;
 
 // Current state
-localparam STATE_IDLE       = 4'd0;
-localparam STATE_ZERO       = 4'd1;
-localparam STATE_ONES       = 4'd2;
-localparam STATE_INCR       = 4'd3;
-localparam STATE_WAIT       = 4'd4;
+localparam STATE_IDLE       = 3'd0;
+localparam STATE_ZERO       = 3'd1;
+localparam STATE_ONES       = 3'd2;
+localparam STATE_INCR       = 3'd3;
+localparam STATE_USER       = 3'd4;
+localparam STATE_WAIT       = 3'd5;
 
-reg [`STATE_W-1:0] state_q;
-reg [`STATE_W-1:0] next_state_r;
+reg [STATE_W-1:0] state_q;
+reg [STATE_W-1:0] next_state_r;
 
 always @ *
 begin
@@ -529,11 +575,13 @@ begin
             next_state_r  = STATE_ONES;
         else if (cfg_incr_w)
             next_state_r  = STATE_INCR;
+        else if (cfg_user_w)
+            next_state_r  = STATE_USER;
     end
     //-----------------------------------------
     // WRITE
     //-----------------------------------------
-    STATE_ZERO, STATE_ONES, STATE_INCR:
+    STATE_ZERO, STATE_ONES, STATE_INCR, STATE_USER:
     begin
         if (current_addr_q == buffer_end_w && !burst_q)
             next_state_r = STATE_WAIT;
@@ -694,6 +742,8 @@ begin
         write_data_q <= 32'hFFFFFFFF;
     else if (next_state_r == STATE_INCR)
         write_data_q <= 32'h33221100;
+    else if (next_state_r == STATE_USER)
+        write_data_q <= user_data_w;
     else
         write_data_q <= 32'b0;
 end
